@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
 type ProvenanceChecks struct {
@@ -28,7 +29,9 @@ func (pc *ProvenanceChecks) Flags() {
 	flag.StringVar(&pc.BuilderId, "builder-id", defaultBuilderID, "The builder ID of the provenance generator (default: Legit's provenance generator)")
 }
 
-func (pc *ProvenanceChecks) Verify(provenance intoto.ProvenanceStatement) error {
+func (pc *ProvenanceChecks) Verify(statement *intoto.ProvenanceStatement) error {
+	provenance := statement.Predicate
+
 	if err := pc.verifyRepo(provenance); err != nil {
 		return err
 	}
@@ -48,7 +51,7 @@ func (pc *ProvenanceChecks) Verify(provenance intoto.ProvenanceStatement) error 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyTag(provenance intoto.ProvenanceStatement) error {
+func (pc *ProvenanceChecks) verifyTag(provenance slsa.ProvenancePredicate) error {
 	if pc.Tag == "" {
 		return nil
 	}
@@ -65,7 +68,7 @@ func (pc *ProvenanceChecks) verifyTag(provenance intoto.ProvenanceStatement) err
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyBranch(provenance intoto.ProvenanceStatement) error {
+func (pc *ProvenanceChecks) verifyBranch(provenance slsa.ProvenancePredicate) error {
 	if pc.Branch == "" {
 		return nil
 	}
@@ -82,7 +85,7 @@ func (pc *ProvenanceChecks) verifyBranch(provenance intoto.ProvenanceStatement) 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyBuilderID(provenance intoto.ProvenanceStatement) error {
+func (pc *ProvenanceChecks) verifyBuilderID(provenance slsa.ProvenancePredicate) error {
 	if pc.BuilderId == "" {
 		return nil
 	}
@@ -99,7 +102,7 @@ func (pc *ProvenanceChecks) verifyBuilderID(provenance intoto.ProvenanceStatemen
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyRepo(provenance intoto.ProvenanceStatement) error {
+func (pc *ProvenanceChecks) verifyRepo(provenance slsa.ProvenancePredicate) error {
 	if pc.RepoUrl == "" {
 		return nil
 	}
@@ -116,8 +119,8 @@ func (pc *ProvenanceChecks) verifyRepo(provenance intoto.ProvenanceStatement) er
 	return nil
 }
 
-func pullInvocationEnv(provenance intoto.ProvenanceStatement) (map[string]interface{}, error) {
-	env, ok := provenance.Predicate.Invocation.Environment.(map[string]interface{})
+func pullInvocationEnv(provenance slsa.ProvenancePredicate) (map[string]interface{}, error) {
+	env, ok := provenance.Invocation.Environment.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("failed to pull environment info")
 	}
@@ -125,7 +128,7 @@ func pullInvocationEnv(provenance intoto.ProvenanceStatement) (map[string]interf
 	return env, nil
 }
 
-func pullGithubEventPayload(provenance intoto.ProvenanceStatement) (map[string]interface{}, error) {
+func pullGithubEventPayload(provenance slsa.ProvenancePredicate) (map[string]interface{}, error) {
 	env, err := pullInvocationEnv(provenance)
 	if err != nil {
 		return nil, err
@@ -144,7 +147,7 @@ func pullGithubEventPayload(provenance intoto.ProvenanceStatement) (map[string]i
 	return asMap, nil
 }
 
-func pullProvenanceRepoInfo(provenance intoto.ProvenanceStatement) (map[string]interface{}, error) {
+func pullProvenanceRepoInfo(provenance slsa.ProvenancePredicate) (map[string]interface{}, error) {
 	event, err := pullGithubEventPayload(provenance)
 	if err != nil {
 		return nil, err
@@ -163,13 +166,13 @@ func pullProvenanceRepoInfo(provenance intoto.ProvenanceStatement) (map[string]i
 	return asMap, nil
 }
 
-func pullProvenanceRepoUrl(provenance intoto.ProvenanceStatement) (string, error) {
+func pullProvenanceRepoUrl(provenance slsa.ProvenancePredicate) (string, error) {
 	repo, err := pullProvenanceRepoInfo(provenance)
 	if err != nil {
 		return "", err
 	}
 
-	url, ok := repo["url"]
+	url, ok := repo["html_url"]
 	if !ok {
 		return "", fmt.Errorf("failed to pull repository url")
 	}
@@ -182,17 +185,17 @@ func pullProvenanceRepoUrl(provenance intoto.ProvenanceStatement) (string, error
 	return asString, nil
 }
 
-func pullBuilderID(provenance intoto.ProvenanceStatement) (string, error) {
-	return provenance.Predicate.Builder.ID, nil
+func pullBuilderID(provenance slsa.ProvenancePredicate) (string, error) {
+	return provenance.Builder.ID, nil
 }
 
-func pullBranch(provenance intoto.ProvenanceStatement) (string, error) {
-	event, err := pullGithubEventPayload(provenance)
+func pullBranch(provenance slsa.ProvenancePredicate) (string, error) {
+	env, err := pullInvocationEnv(provenance)
 	if err != nil {
 		return "", err
 	}
 
-	branch, ok := event["base_ref"]
+	branch, ok := env["github_ref"]
 	if !ok {
 		return "", fmt.Errorf("failed to pull base ref (branch)")
 	}
@@ -207,7 +210,7 @@ func pullBranch(provenance intoto.ProvenanceStatement) (string, error) {
 	return clean, nil
 }
 
-func pullTag(provenance intoto.ProvenanceStatement) (string, error) {
+func pullTag(provenance slsa.ProvenancePredicate) (string, error) {
 	event, err := pullGithubEventPayload(provenance)
 	if err != nil {
 		return "", err

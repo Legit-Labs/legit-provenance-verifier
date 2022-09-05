@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -16,6 +17,10 @@ var (
 	keyPath         string
 	attestationPath string
 	checks          legitprovenance.ProvenanceChecks
+)
+
+const (
+	debugPayloadEnvKey = "DEBUG_PAYLAOD"
 )
 
 func main() {
@@ -41,13 +46,17 @@ func main() {
 		log.Panicf("attestation verification failed: %v", err)
 	}
 
-	var predicate intoto.ProvenanceStatement
-	err = json.Unmarshal(payload, &predicate)
+	if os.Getenv(debugPayloadEnvKey) == "1" {
+		fmt.Printf("Payload:\n%v\n", string(payload))
+	}
+
+	var statement intoto.ProvenanceStatement
+	err = json.Unmarshal(payload, &statement)
 	if err != nil {
 		log.Panicf("failed to unmarshal predicate: %v", err)
 	}
 
-	if err = checks.Verify(predicate); err != nil {
+	if err = checks.Verify(&statement); err != nil {
 		log.Panicf("provenance verification failed: %v", err)
 	}
 
