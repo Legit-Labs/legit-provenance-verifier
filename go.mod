@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/in-toto/in-toto-golang v0.3.4-0.20220709202702-fa494aaa0add
-	github.com/legit-labs/legit-verify-attestation v0.0.0-20220905122319-c9ec6b9f45d6
+	github.com/legit-labs/legit-verify-attestation v0.0.0-20220905123851-b94263ef355f
 )
 
 require (

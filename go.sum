@@ -939,6 +939,8 @@ github.com/legit-labs/legit-verify-attestation v0.0.0-20220905121044-afc43d81f95
 github.com/legit-labs/legit-verify-attestation v0.0.0-20220905121044-afc43d81f95a/go.mod h1:7OVexnsX6TNbWMNKSzHMrhQQwiUBLArgl/xtd+RbtHA=
 github.com/legit-labs/legit-verify-attestation v0.0.0-20220905122319-c9ec6b9f45d6 h1:/z9+t8FEGp65MtAz2/kuB+j8r/E8ciAyynGJ7ZI2HXk=
 github.com/legit-labs/legit-verify-attestation v0.0.0-20220905122319-c9ec6b9f45d6/go.mod h1:7OVexnsX6TNbWMNKSzHMrhQQwiUBLArgl/xtd+RbtHA=
+github.com/legit-labs/legit-verify-attestation v0.0.0-20220905123851-b94263ef355f h1:Dov9LA4I9MAtnIqq2O2KP3W8056h8H4ohW8hHRXz/e8=
+github.com/legit-labs/legit-verify-attestation v0.0.0-20220905123851-b94263ef355f/go.mod h1:7OVexnsX6TNbWMNKSzHMrhQQwiUBLArgl/xtd+RbtHA=
 github.com/leodido/go-urn v1.2.1 h1:BqpAaACuzVSgi/VLzGZIobT2z4v53pjosyNd9Yv6n/w=
 github.com/leodido/go-urn v1.2.1/go.mod h1:zt4jvISO2HfUBqxjfIshjdMTYS56ZS/qv49ictyFfxY=
 github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e h1:2ba+yBBeT8ZFyZjRLPDKvkqVrWX4CCYAuR6nuJGojD0=
