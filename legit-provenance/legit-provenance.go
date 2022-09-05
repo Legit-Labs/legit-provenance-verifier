@@ -14,6 +14,7 @@ type ProvenanceChecks struct {
 	Branch    string
 	Tag       string
 	BuilderId string
+	IsTagged  bool
 }
 
 const (
@@ -26,6 +27,7 @@ func (pc *ProvenanceChecks) Flags() {
 	flag.StringVar(&pc.RepoUrl, "repo-url", "", "The source repository url (default: no check)")
 	flag.StringVar(&pc.Branch, "branch", "", "The source branch (default: no check)")
 	flag.StringVar(&pc.Tag, "tag", "", "The tag of the commit (default: no check)")
+	flag.BoolVar(&pc.IsTagged, "is-tagged", false, "The commit is tagged (default: no check)")
 	flag.StringVar(&pc.BuilderId, "builder-id", defaultBuilderID, "The builder ID of the provenance generator (default: Legit's provenance generator)")
 }
 
@@ -44,8 +46,29 @@ func (pc *ProvenanceChecks) Verify(statement *intoto.ProvenanceStatement) error 
 		return err
 	}
 
+	if err := pc.verifyIsTagged(provenance); err != nil {
+		return err
+	}
+
 	if err := pc.verifyTag(provenance); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (pc *ProvenanceChecks) verifyIsTagged(provenance slsa.ProvenancePredicate) error {
+	if !pc.IsTagged {
+		return nil
+	}
+
+	tagged, err := isTagged(provenance)
+	if err != nil {
+		return err
+	}
+
+	if !tagged {
+		return fmt.Errorf("expected a tagged commit but the commit is untagged")
 	}
 
 	return nil
