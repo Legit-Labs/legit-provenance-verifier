@@ -190,33 +190,60 @@ func pullBuilderID(provenance slsa.ProvenancePredicate) (string, error) {
 }
 
 func pullBranch(provenance slsa.ProvenancePredicate) (string, error) {
-	env, err := pullInvocationEnv(provenance)
+
+	tagged, err := isTagged(provenance)
 	if err != nil {
 		return "", err
 	}
 
-	branch, ok := env["github_ref"]
+	var b interface{}
+	var ok bool
+	if tagged {
+		repo, err := pullGithubEventPayload(provenance)
+		if err != nil {
+			return "", err
+		}
+
+		b, ok = repo["base_ref"]
+	} else {
+		env, err := pullInvocationEnv(provenance)
+		if err != nil {
+			return "", err
+		}
+
+		b, ok = env["github_ref"]
+	}
+
 	if !ok {
 		return "", fmt.Errorf("failed to pull base ref (branch)")
 	}
 
-	asString, ok := branch.(string)
+	branch, ok := b.(string)
 	if !ok {
-		return "", fmt.Errorf("unexpected type of branch: %T", branch)
+		return "", fmt.Errorf("unexpected branch type: %T\n", b)
 	}
 
-	clean := strings.TrimPrefix(asString, branchRefPrefix)
+	clean := strings.TrimPrefix(branch, branchRefPrefix)
 
 	return clean, nil
 }
 
 func pullTag(provenance slsa.ProvenancePredicate) (string, error) {
-	event, err := pullGithubEventPayload(provenance)
+	env, err := pullInvocationEnv(provenance)
 	if err != nil {
 		return "", err
 	}
 
-	tag, ok := event["ref"]
+	tagged, err := isTagged(provenance)
+	if err != nil {
+		return "", err
+	}
+
+	if !tagged {
+		return "", fmt.Errorf("trying to check tag for an untagged version")
+	}
+
+	tag, ok := env["github_ref"]
 	if !ok {
 		return "", fmt.Errorf("failed to pull ref (tag)")
 	}
@@ -229,4 +256,20 @@ func pullTag(provenance slsa.ProvenancePredicate) (string, error) {
 	clean := strings.TrimPrefix(asString, tagRefPrefix)
 
 	return clean, nil
+}
+
+func isTagged(provenance slsa.ProvenancePredicate) (bool, error) {
+	env, err := pullInvocationEnv(provenance)
+	if err != nil {
+		return false, err
+	}
+
+	reftype, ok := env["github_ref_type"]
+	if !ok {
+		return false, fmt.Errorf("failed to check github ref type")
+	}
+
+	isTag := reftype == "tag"
+
+	return isTag, nil
 }
