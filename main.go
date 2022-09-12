@@ -1,31 +1,24 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
-	"os"
 
-	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	legitprovenance "github.com/legit-labs/legit-provenance-verifier/legit-provenance"
-	verifyattestation "github.com/legit-labs/legit-verify-attestation/verify-attestation"
+	legit_provenance "github.com/legit-labs/legit-provenance-verifier/legit-provenance"
 )
 
 var (
 	keyPath         string
 	attestationPath string
-	checks          legitprovenance.ProvenanceChecks
-)
-
-const (
-	debugPayloadEnvKey = "DEBUG_PAYLAOD"
+	digest          string
+	checks          legit_provenance.ProvenanceChecks
 )
 
 func main() {
 	flag.StringVar(&keyPath, "key", "", "The path of the public key")
 	flag.StringVar(&attestationPath, "attestation", "", "The path of the attestation document")
+	flag.StringVar(&digest, "digest", "", "The expected subject digest")
+
 	checks.Flags()
 
 	flag.Parse()
@@ -36,28 +29,8 @@ func main() {
 		log.Panicf("please provide an attestation path")
 	}
 
-	attestation, err := os.ReadFile(attestationPath)
-	if err != nil {
-		log.Panicf("failed to open attestation at %v: %v", attestationPath, err)
-	}
-
-	payload, err := verifyattestation.VerifiedPayload(context.Background(), keyPath, attestation)
-	if err != nil {
-		log.Panicf("attestation verification failed: %v", err)
-	}
-
-	if os.Getenv(debugPayloadEnvKey) == "1" {
-		fmt.Printf("Payload:\n%v\n", string(payload))
-	}
-
-	var statement intoto.ProvenanceStatement
-	err = json.Unmarshal(payload, &statement)
-	if err != nil {
-		log.Panicf("failed to unmarshal predicate: %v", err)
-	}
-
-	if err = checks.Verify(&statement); err != nil {
-		log.Panicf("provenance verification failed: %v", err)
+	if err := legit_provenance.Verify(attestationPath, keyPath, digest, checks); err != nil {
+		log.Panicf("verification failed: %v", err)
 	}
 
 	log.Printf("provenance verified successfully.")

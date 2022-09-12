@@ -1,4 +1,4 @@
-package legitprovenance
+package legit_provenance
 
 import (
 	"flag"
