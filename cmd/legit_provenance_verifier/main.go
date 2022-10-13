@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -48,7 +49,7 @@ func main() {
 		}
 	}
 
-	if err := legit_provenance_verifier.Verify(attestation, keyPath, digest, checks); err != nil {
+	if err := legit_provenance_verifier.Verify(context.Background(), attestation, keyPath, digest, checks); err != nil {
 		log.Panicf("verification failed: %v", err)
 	}
 
