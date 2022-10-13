@@ -1,21 +1,15 @@
-package legit_provenance
+package legit_provenance_verifier
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
 	verifyattestation "github.com/legit-labs/legit-verify-attestation/verify-attestation"
 )
 
-func Verify(attestationPath string, keyPath string, digest string, checks ProvenanceChecks) error {
-	attestation, err := os.ReadFile(attestationPath)
-	if err != nil {
-		return fmt.Errorf("failed to open attestation at %v: %v", attestationPath, err)
-	}
-
+func Verify(attestation []byte, keyPath string, digest string, checks ProvenanceChecks) error {
 	payload, err := verifyattestation.VerifiedPayload(context.Background(), keyPath, attestation)
 	if err != nil {
 		return fmt.Errorf("attestation verification failed: %v", err)

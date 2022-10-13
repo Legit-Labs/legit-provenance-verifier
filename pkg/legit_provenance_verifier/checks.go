@@ -1,4 +1,4 @@
-package legit_provenance
+package legit_provenance_verifier
 
 import (
 	"flag"
@@ -18,7 +18,7 @@ type ProvenanceChecks struct {
 }
 
 const (
-	defaultBuilderID = `https://github.com/legit-labs/legit-provenance-generator/.github/workflows/legit_provenance_generator.yml@refs/tags/v0.1.0`
+	defaultBuilderID = `Legit Security Provenance Generator`
 	branchRefPrefix  = "refs/heads/"
 	tagRefPrefix     = "refs/tags/"
 )
@@ -28,7 +28,7 @@ func (pc *ProvenanceChecks) Flags() {
 	flag.StringVar(&pc.Branch, "branch", "", "The source branch (default: no check)")
 	flag.StringVar(&pc.Tag, "tag", "", "The tag of the commit (default: no check)")
 	flag.BoolVar(&pc.IsTagged, "is-tagged", false, "The commit is tagged (default: no check)")
-	flag.StringVar(&pc.BuilderId, "builder-id", defaultBuilderID, "The builder ID of the provenance generator (default: Legit's provenance generator)")
+	flag.StringVar(&pc.BuilderId, "builder-id", defaultBuilderID, fmt.Sprintf("The builder ID of the provenance generator (default: %v)", defaultBuilderID))
 }
 
 func (pc *ProvenanceChecks) Verify(statement *intoto.ProvenanceStatement) error {
