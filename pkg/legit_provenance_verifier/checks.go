@@ -18,7 +18,7 @@ type ProvenanceChecks struct {
 }
 
 const (
-	defaultBuilderID = `Legit Security Provenance Generator`
+	defaultBuilderID = `legit-security-provenance-generator`
 	branchRefPrefix  = "refs/heads/"
 	tagRefPrefix     = "refs/tags/"
 )
