@@ -422,7 +422,7 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/legit-labs/legit-verify-attestation v0.0.0-20221020090522-048b467651b8
+# github.com/legit-labs/legit-verify-attestation v0.0.0-20221020120513-eb081bde131b
 ## explicit; go 1.19
 github.com/legit-labs/legit-verify-attestation/pkg/legit_verify_attestation
 # github.com/leodido/go-urn v1.2.1

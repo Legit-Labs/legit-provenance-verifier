@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/in-toto/in-toto-golang/in_toto"
 	dsselib "github.com/secure-systems-lab/go-securesystemslib/dsse"
@@ -73,7 +74,7 @@ func UnverifiedPayload(ctx context.Context, keyRef string, attestation []byte) (
 	return ExtractPayload(ctx, keyRef, attestation, skipVerification)
 }
 
-func ExtractTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string, skipSigVerification bool) (*T, error) {
+func ExtractTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, skipSigVerification bool) (*T, error) {
 	payloadBytes, err := ExtractPayload(ctx, keyRef, attestation, skipSigVerification)
 	if err != nil {
 		return nil, err
@@ -85,22 +86,38 @@ func ExtractTypedPayload[T any](ctx context.Context, keyRef string, attestation 
 		return nil, fmt.Errorf("failed to unmarshal predicate: %v", err)
 	}
 
-	header, ok := any(payload).(in_toto.StatementHeader)
-	if !ok {
-		return nil, fmt.Errorf("The payload does not contain a statement header: %T", payload)
-	}
-
-	statementDigest := header.Subject[0].Digest["sha256"]
-	if statementDigest != digest {
-		return nil, fmt.Errorf("expected digest %v does not match actual: %v", digest, statementDigest)
-	}
-
 	return &payload, nil
 }
 
-func VerifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string) (*T, error) {
-	return ExtractTypedPayload[T](ctx, keyRef, attestation, digest, doNotSkipVerification)
+func VerifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte) (*T, error) {
+	return ExtractTypedPayload[T](ctx, keyRef, attestation, doNotSkipVerification)
 }
-func UnverifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string) (*T, error) {
-	return ExtractTypedPayload[T](ctx, keyRef, attestation, digest, skipVerification)
+func UnverifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte) (*T, error) {
+	return ExtractTypedPayload[T](ctx, keyRef, attestation, skipVerification)
+}
+
+func VerifyDigests(subjects []in_toto.Subject, digests ...string) error {
+	checks := len(digests)
+	actual := len(subjects)
+
+	if actual < checks {
+		return fmt.Errorf("failed to verify digests: not enough digests (%v < %v)", actual, checks)
+	} else if checks < actual {
+		log.Printf("note: you only checked %v out of %v digests", checks, actual)
+	}
+
+	// create a map to accept unordered list of digests (and avoid n^2 iteration)
+	actualMapped := make(map[string]bool, actual)
+	for _, d := range subjects {
+		sha := d.Digest["sha256"]
+		actualMapped[sha] = true
+	}
+
+	for _, d := range digests {
+		if _, ok := actualMapped[d]; !ok {
+			return fmt.Errorf("expected digest %v does not exist in subject: %v", d, actualMapped)
+		}
+	}
+
+	return nil
 }
