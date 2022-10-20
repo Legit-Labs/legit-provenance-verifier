@@ -6,24 +6,42 @@ import (
 	"strings"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
 type ProvenanceChecks struct {
-	RepoUrl   string
-	Branch    string
-	Tag       string
-	BuilderId string
-	IsTagged  bool
+	SkipVerifySig bool
+	RepoUrl       string
+	Branch        string
+	Tag           string
+	BuilderId     string
+	IsTagged      bool
+}
+
+type ProvenanceChecker interface {
+	Check() error
+}
+
+type provenanceChecker struct {
+	checks ProvenanceChecks
+	ep     ExtendedProvenance
+}
+
+func newProvenanceChecker(statement *intoto.ProvenanceStatement, checks ProvenanceChecks) ProvenanceChecker {
+	return provenanceChecker{
+		checks: checks,
+		ep:     ExtendedProvenance{Provenance: statement.Predicate},
+	}
 }
 
 const (
-	defaultBuilderID = `legit-security-provenance-generator`
+	defaultBuilderID = `https://github.com/legit-labs/legit-provenance-action/.github/workflows/generate_provenance.yml`
+	LegitBuildType   = `legit-security-provenance-generator`
 	branchRefPrefix  = "refs/heads/"
 	tagRefPrefix     = "refs/tags/"
 )
 
 func (pc *ProvenanceChecks) Flags() {
+	flag.BoolVar(&pc.SkipVerifySig, "skip-signature-verification", false, "Skip signature verification (default: verify)")
 	flag.StringVar(&pc.RepoUrl, "repo-url", "", "The source repository url (default: no check)")
 	flag.StringVar(&pc.Branch, "branch", "", "The source branch (default: no check)")
 	flag.StringVar(&pc.Tag, "tag", "", "The tag of the commit (default: no check)")
@@ -31,38 +49,40 @@ func (pc *ProvenanceChecks) Flags() {
 	flag.StringVar(&pc.BuilderId, "builder-id", defaultBuilderID, fmt.Sprintf("The builder ID of the provenance generator (default: %v)", defaultBuilderID))
 }
 
-func (pc *ProvenanceChecks) Verify(statement *intoto.ProvenanceStatement) error {
-	provenance := statement.Predicate
-
-	if err := pc.verifyRepo(provenance); err != nil {
+func (pc provenanceChecker) Check() error {
+	if err := pc.verifyRepo(); err != nil {
 		return err
 	}
 
-	if err := pc.verifyBuilderID(provenance); err != nil {
+	if err := pc.verifyBuilderID(); err != nil {
 		return err
 	}
 
-	if err := pc.verifyBranch(provenance); err != nil {
+	if err := pc.verifyBuildType(); err != nil {
 		return err
 	}
 
-	if err := pc.verifyIsTagged(provenance); err != nil {
+	if err := pc.verifyBranch(); err != nil {
 		return err
 	}
 
-	if err := pc.verifyTag(provenance); err != nil {
+	if err := pc.verifyIsTagged(); err != nil {
+		return err
+	}
+
+	if err := pc.verifyTag(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyIsTagged(provenance slsa.ProvenancePredicate) error {
-	if !pc.IsTagged {
+func (pc provenanceChecker) verifyIsTagged() error {
+	if !pc.checks.IsTagged {
 		return nil
 	}
 
-	tagged, err := isTagged(provenance)
+	tagged, err := pc.ep.isTagged()
 	if err != nil {
 		return err
 	}
@@ -74,225 +94,75 @@ func (pc *ProvenanceChecks) verifyIsTagged(provenance slsa.ProvenancePredicate) 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyTag(provenance slsa.ProvenancePredicate) error {
-	if pc.Tag == "" {
+func (pc provenanceChecker) verifyTag() error {
+	if pc.checks.Tag == "" {
 		return nil
 	}
 
-	tag, err := pullTag(provenance)
+	tag, err := pc.ep.Tag()
 	if err != nil {
 		return err
 	}
 
-	if tag != pc.Tag {
-		return fmt.Errorf("expected tag %v does not match actual: %v", pc.Tag, tag)
+	if tag != pc.checks.Tag {
+		return fmt.Errorf("expected tag %v does not match actual: %v", pc.checks.Tag, tag)
 	}
 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyBranch(provenance slsa.ProvenancePredicate) error {
-	if pc.Branch == "" {
+func (pc provenanceChecker) verifyBranch() error {
+	if pc.checks.Branch == "" {
 		return nil
 	}
 
-	branch, err := pullBranch(provenance)
+	branch, err := pc.ep.Branch()
 	if err != nil {
 		return err
 	}
 
-	if branch != pc.Branch {
-		return fmt.Errorf("expected branch %v does not match actual: %v", pc.Branch, branch)
+	if branch != pc.checks.Branch {
+		return fmt.Errorf("expected branch %v does not match actual: %v", pc.checks.Branch, branch)
 	}
 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyBuilderID(provenance slsa.ProvenancePredicate) error {
-	if pc.BuilderId == "" {
+func (pc provenanceChecker) verifyBuilderID() error {
+	if pc.checks.BuilderId == "" {
 		return nil
 	}
 
-	builderID, err := pullBuilderID(provenance)
-	if err != nil {
-		return err
-	}
-
-	if builderID != pc.BuilderId {
-		return fmt.Errorf("expected builder ID %v does not match actual: %v", pc.BuilderId, builderID)
+	builderID := pc.ep.BuilderID()
+	if strings.HasPrefix(strings.ToLower(builderID), pc.checks.BuilderId) {
+		return fmt.Errorf("expected builder ID %v does not match actual: %v", pc.checks.BuilderId, builderID)
 	}
 
 	return nil
 }
 
-func (pc *ProvenanceChecks) verifyRepo(provenance slsa.ProvenancePredicate) error {
-	if pc.RepoUrl == "" {
-		return nil
-	}
-
-	repo, err := pullProvenanceRepoUrl(provenance)
-	if err != nil {
-		return err
-	}
-
-	if repo != pc.RepoUrl {
-		return fmt.Errorf("expected repo %v does not match actual: %v", pc.RepoUrl, repo)
+func (pc provenanceChecker) verifyBuildType() error {
+	buildType := pc.ep.BuildType()
+	if strings.HasPrefix(strings.ToLower(buildType), LegitBuildType) {
+		return fmt.Errorf("expected build type %v does not match actual: %v", LegitBuildType, buildType)
 	}
 
 	return nil
 }
 
-func pullInvocationEnv(provenance slsa.ProvenancePredicate) (map[string]interface{}, error) {
-	env, ok := provenance.Invocation.Environment.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to pull environment info")
+func (pc provenanceChecker) verifyRepo() error {
+	if pc.checks.RepoUrl == "" {
+		return nil
 	}
 
-	return env, nil
-}
-
-func pullGithubEventPayload(provenance slsa.ProvenancePredicate) (map[string]interface{}, error) {
-	env, err := pullInvocationEnv(provenance)
+	repo, err := pc.ep.ProvenanceRepoUrl()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	event, ok := env["github_event_payload"]
-	if !ok {
-		return nil, fmt.Errorf("failed to pull github event payload")
+	if repo != pc.checks.RepoUrl {
+		return fmt.Errorf("expected repo %v does not match actual: %v", pc.checks.RepoUrl, repo)
 	}
 
-	asMap, ok := event.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected type of github event payload: %T", event)
-	}
-
-	return asMap, nil
-}
-
-func pullProvenanceRepoInfo(provenance slsa.ProvenancePredicate) (map[string]interface{}, error) {
-	event, err := pullGithubEventPayload(provenance)
-	if err != nil {
-		return nil, err
-	}
-
-	repo, ok := event["repository"]
-	if !ok {
-		return nil, fmt.Errorf("failed to pull repository info")
-	}
-
-	asMap, ok := repo.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected type of repository info: %T", repo)
-	}
-
-	return asMap, nil
-}
-
-func pullProvenanceRepoUrl(provenance slsa.ProvenancePredicate) (string, error) {
-	repo, err := pullProvenanceRepoInfo(provenance)
-	if err != nil {
-		return "", err
-	}
-
-	url, ok := repo["html_url"]
-	if !ok {
-		return "", fmt.Errorf("failed to pull repository url")
-	}
-
-	asString, ok := url.(string)
-	if !ok {
-		return "", fmt.Errorf("unexpected type of repository url: %T", url)
-	}
-
-	return asString, nil
-}
-
-func pullBuilderID(provenance slsa.ProvenancePredicate) (string, error) {
-	return provenance.Builder.ID, nil
-}
-
-func pullBranch(provenance slsa.ProvenancePredicate) (string, error) {
-
-	tagged, err := isTagged(provenance)
-	if err != nil {
-		return "", err
-	}
-
-	var b interface{}
-	var ok bool
-	if tagged {
-		repo, err := pullGithubEventPayload(provenance)
-		if err != nil {
-			return "", err
-		}
-
-		b, ok = repo["base_ref"]
-	} else {
-		env, err := pullInvocationEnv(provenance)
-		if err != nil {
-			return "", err
-		}
-
-		b, ok = env["github_ref"]
-	}
-
-	if !ok {
-		return "", fmt.Errorf("failed to pull base ref (branch)")
-	}
-
-	branch, ok := b.(string)
-	if !ok {
-		return "", fmt.Errorf("unexpected branch type: %T\n", b)
-	}
-
-	clean := strings.TrimPrefix(branch, branchRefPrefix)
-
-	return clean, nil
-}
-
-func pullTag(provenance slsa.ProvenancePredicate) (string, error) {
-	env, err := pullInvocationEnv(provenance)
-	if err != nil {
-		return "", err
-	}
-
-	tagged, err := isTagged(provenance)
-	if err != nil {
-		return "", err
-	}
-
-	if !tagged {
-		return "", fmt.Errorf("trying to check tag for an untagged version")
-	}
-
-	tag, ok := env["github_ref"]
-	if !ok {
-		return "", fmt.Errorf("failed to pull ref (tag)")
-	}
-
-	asString, ok := tag.(string)
-	if !ok {
-		return "", fmt.Errorf("unexpected type of tag: %T", tag)
-	}
-
-	clean := strings.TrimPrefix(asString, tagRefPrefix)
-
-	return clean, nil
-}
-
-func isTagged(provenance slsa.ProvenancePredicate) (bool, error) {
-	env, err := pullInvocationEnv(provenance)
-	if err != nil {
-		return false, err
-	}
-
-	reftype, ok := env["github_ref_type"]
-	if !ok {
-		return false, fmt.Errorf("failed to check github ref type")
-	}
-
-	isTag := reftype == "tag"
-
-	return isTag, nil
+	return nil
 }

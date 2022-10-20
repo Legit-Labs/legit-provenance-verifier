@@ -16,7 +16,8 @@ func Verify(ctx context.Context, attestation []byte, keyPath string, digest stri
 		return fmt.Errorf("provenance payload verification failed: %v", err)
 	}
 
-	if err = checks.Verify(statement); err != nil {
+	checker := newProvenanceChecker(statement, checks)
+	if err = checker.Check(); err != nil {
 		return fmt.Errorf("provenance checks failed: %v", err)
 	}
 
