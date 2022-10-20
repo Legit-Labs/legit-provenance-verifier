@@ -134,7 +134,7 @@ func (pc provenanceChecker) verifyBuilderID() error {
 	}
 
 	builderID := pc.ep.BuilderID()
-	if strings.HasPrefix(strings.ToLower(builderID), pc.checks.BuilderId) {
+	if !strings.HasPrefix(strings.ToLower(builderID), pc.checks.BuilderId) {
 		return fmt.Errorf("expected builder ID %v does not match actual: %v", pc.checks.BuilderId, builderID)
 	}
 
@@ -143,7 +143,7 @@ func (pc provenanceChecker) verifyBuilderID() error {
 
 func (pc provenanceChecker) verifyBuildType() error {
 	buildType := pc.ep.BuildType()
-	if strings.HasPrefix(strings.ToLower(buildType), LegitBuildType) {
+	if buildType != LegitBuildType {
 		return fmt.Errorf("expected build type %v does not match actual: %v", LegitBuildType, buildType)
 	}
 
