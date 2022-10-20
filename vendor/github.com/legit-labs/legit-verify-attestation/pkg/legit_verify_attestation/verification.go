@@ -12,6 +12,11 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/dsse"
 )
 
+const (
+	skipVerification      = true
+	doNotSkipVerification = false
+)
+
 func attestationToEnvelope(attestation []byte) (*dsselib.Envelope, error) {
 	var env dsselib.Envelope
 
@@ -62,11 +67,14 @@ func ExtractPayload(ctx context.Context, keyRef string, attestation []byte, skip
 }
 
 func VerifiedPayload(ctx context.Context, keyRef string, attestation []byte) ([]byte, error) {
-	return ExtractPayload(ctx, keyRef, attestation, false)
+	return ExtractPayload(ctx, keyRef, attestation, doNotSkipVerification)
+}
+func UnverifiedPayload(ctx context.Context, keyRef string, attestation []byte) ([]byte, error) {
+	return ExtractPayload(ctx, keyRef, attestation, skipVerification)
 }
 
-func VerifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string) (*T, error) {
-	payloadBytes, err := VerifiedPayload(ctx, keyRef, attestation)
+func ExtractTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string, skipSigVerification bool) (*T, error) {
+	payloadBytes, err := ExtractPayload(ctx, keyRef, attestation, skipSigVerification)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +98,9 @@ func VerifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation
 	return &payload, nil
 }
 
-func UnverifiedPayload(ctx context.Context, keyRef string, attestation []byte) ([]byte, error) {
-	return ExtractPayload(ctx, keyRef, attestation, true)
+func VerifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string) (*T, error) {
+	return ExtractTypedPayload[T](ctx, keyRef, attestation, digest, doNotSkipVerification)
+}
+func UnverifiedTypedPayload[T any](ctx context.Context, keyRef string, attestation []byte, digest string) (*T, error) {
+	return ExtractTypedPayload[T](ctx, keyRef, attestation, digest, skipVerification)
 }

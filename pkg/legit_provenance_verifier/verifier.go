@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
-	"github.com/legit-labs/legit-attestation/pkg/legit_verify_attestation"
+	"github.com/legit-labs/legit-verify-attestation/pkg/legit_verify_attestation"
 )
 
 var verifyPayload = legit_verify_attestation.VerifiedTypedPayload[intoto.ProvenanceStatement]
