@@ -427,7 +427,7 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/legit-labs/legit-registry-tools v1.0.1-0.20221023153608-f90877d5cdb9
+# github.com/legit-labs/legit-registry-tools v1.0.1-0.20221023155037-11c62af502be
 ## explicit; go 1.18
 github.com/legit-labs/legit-registry-tools/pkg/legit_registry_tools
 # github.com/legit-labs/legit-verify-attestation v0.0.0-20221020120513-eb081bde131b

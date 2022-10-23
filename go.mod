@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/in-toto/in-toto-golang v0.4.0
-	github.com/legit-labs/legit-registry-tools v1.0.1-0.20221023153608-f90877d5cdb9
+	github.com/legit-labs/legit-registry-tools v1.0.1-0.20221023155037-11c62af502be
 	github.com/legit-labs/legit-verify-attestation v0.0.0-20221020120513-eb081bde131b
 )
 

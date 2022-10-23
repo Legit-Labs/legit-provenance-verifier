@@ -17,6 +17,8 @@ const (
 var verifyPayload = legit_verify_attestation.VerifiedTypedPayload[intoto.ProvenanceStatement]
 
 func Verify(ctx context.Context, attestation []byte, keyPath string, digest string, checks ProvenanceChecks) error {
+	digest = legit_registry_tools.DigestToShaValue(digest)
+
 	statement, err := verifyPayload(ctx, keyPath, attestation)
 	if err != nil {
 		return fmt.Errorf("provenance payload verification failed: %v", err)

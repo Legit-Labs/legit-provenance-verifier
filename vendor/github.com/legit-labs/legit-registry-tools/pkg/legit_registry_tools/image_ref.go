@@ -52,17 +52,27 @@ func (i *ImageRef) Ref() string {
 	return ref
 }
 
-func (i *ImageRef) DigestToShaValue() string {
-	_, pure, _ := strings.Cut(i.Digest, shaSeparator)
-	return pure
-}
-
 func (i *ImageRef) Tagged() bool {
 	return i.Tag != ""
 }
 
+func DigestToShaValue(digest string) string {
+	prefix, pure, found := strings.Cut(digest, shaSeparator)
+	if found {
+		return pure
+	} else {
+		// already stripped of the prefix, so the prefix is actually the value
+		return prefix
+	}
+}
+
 func DigestFromShaValue(shaValue string) string {
-	return fmt.Sprintf("%v%v%v", shaPrefix, shaSeparator, shaValue)
+	prefix := shaPrefix + shaSeparator
+	if strings.HasPrefix(shaValue, prefix) {
+		return shaValue
+	} else {
+		return fmt.Sprintf("%v%v", prefix, shaValue)
+	}
 }
 
 func HasDigest(ref string) bool {
