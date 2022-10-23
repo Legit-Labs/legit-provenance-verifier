@@ -299,11 +299,16 @@ github.com/google/go-cmp/cmp/internal/value
 github.com/google/go-containerregistry/internal/and
 github.com/google/go-containerregistry/internal/estargz
 github.com/google/go-containerregistry/internal/gzip
+github.com/google/go-containerregistry/internal/legacy
 github.com/google/go-containerregistry/internal/redact
 github.com/google/go-containerregistry/internal/retry
 github.com/google/go-containerregistry/internal/retry/wait
 github.com/google/go-containerregistry/internal/verify
+github.com/google/go-containerregistry/internal/windows
 github.com/google/go-containerregistry/pkg/authn
+github.com/google/go-containerregistry/pkg/crane
+github.com/google/go-containerregistry/pkg/legacy
+github.com/google/go-containerregistry/pkg/legacy/tarball
 github.com/google/go-containerregistry/pkg/logs
 github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/v1
@@ -422,6 +427,9 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/legit-labs/legit-registry-tools v1.0.1-0.20221023153608-f90877d5cdb9
+## explicit; go 1.18
+github.com/legit-labs/legit-registry-tools/pkg/legit_registry_tools
 # github.com/legit-labs/legit-verify-attestation v0.0.0-20221020120513-eb081bde131b
 ## explicit; go 1.19
 github.com/legit-labs/legit-verify-attestation/pkg/legit_verify_attestation
