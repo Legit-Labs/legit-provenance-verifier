@@ -25,7 +25,7 @@ func main() {
 	flag.StringVar(&attestationPath, "attestation-path", "", "The path of the attestation document")
 	flag.BoolVar(&attestationStdin, "attestation-stdin", false, "Read the attestation from stdin (overwrites -attestation-path if provided)")
 	flag.StringVar(&imageName, "image-name", "", "The name of the image (pass instead of providing attestation to pull from remote). note: needs to be logged in for private registries.")
-	flag.StringVar(&digest, "digest", "", "The expected subject digest (without the sha256 prefix)")
+	flag.StringVar(&digest, "digest", "", `The expected subject digest (with the "sha256:" prefix)`)
 
 	checks.Flags()
 
@@ -45,7 +45,7 @@ func main() {
 	if imageName != "" {
 		imageRef := legit_registry_tools.ImageRef{
 			Name:   imageName,
-			Digest: legit_registry_tools.DigestFromShaValue(digest),
+			Digest: digest,
 		}
 		err = legit_provenance_verifier.VerifyRemote(ctx, &imageRef, keyPath, checks)
 	} else {
